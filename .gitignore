@@ -1,0 +1,5 @@
+pb_data/
+.env
+.env.*
+!.env.example
+basedpocket.exe
