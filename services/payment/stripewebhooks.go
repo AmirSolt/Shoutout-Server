@@ -15,21 +15,11 @@ import (
 )
 
 func onStripeEvents(app core.App, ctx echo.Context, event stripe.Event) *base.CError {
-
-	if event.Type == "customer.created" {
-		return onCustomerCreatedEvent(app, ctx, event)
+	if event.Type == "checkout.session.async_payment_succeeded" {
+		return onCheckoutSuccess(app, ctx, event)
 	}
-	if event.Type == "customer.deleted" {
-		return onCustomerDeletedEvent(app, ctx, event)
-	}
-	if event.Type == "customer.subscription.created" {
-		return onSubscriptionCreatedEvent(app, ctx, event)
-	}
-	if event.Type == "customer.subscription.updated" {
-		return onSubscriptionUpdatedEvent(app, ctx, event)
-	}
-	if event.Type == "customer.subscription.deleted" {
-		return onSubscriptionDeletedEvent(app, ctx, event)
+	if event.Type == "checkout.session.async_payment_failed" {
+		return onCheckoutFail(app, ctx, event)
 	}
 
 	err := fmt.Errorf("unhandled stripe event type: %s\n", event.Type)
@@ -39,27 +29,25 @@ func onStripeEvents(app core.App, ctx echo.Context, event stripe.Event) *base.CE
 
 // ===============================================================================
 
-func onCustomerCreatedEvent(app core.App, ctx echo.Context, event stripe.Event) *base.CError {
-	stripeCustomer, err := getStripeCustomerFromObj(event.Data.Object)
+func onCheckoutSuccess(app core.App, ctx echo.Context, event stripe.Event) *base.CError {
+	checkoutSession, err := getStripeCheckoutSessionFromObj(event.Data.Object)
 	if err != nil {
 		return err
 	}
 
-	var user *cmodels.User
-	if err := app.Dao().ModelQuery(user).
-		AndWhere(dbx.HashExp{"email": stripeCustomer.Email}).
+	orderID := checkoutSession.Metadata["order_id"]
+
+	var order *cmodels.Order
+	if err := app.Dao().ModelQuery(order).
+		AndWhere(dbx.HashExp{"id": orderID}).
 		Limit(1).
-		One(&user); err != nil {
+		One(&order); err != nil {
 		return cmodels.HandleReadError(err, false)
 	}
 
-	newCustomer := &cmodels.Customer{
-		User:                 user.Id,
-		StripeCustomerID:     stripeCustomer.ID,
-		StripeSubscriptionID: "",
-		Tier:                 0,
-	}
-	if err := cmodels.Save(app, newCustomer); err != nil {
+	order.PaymentIntent = checkoutSession.PaymentIntent.ID
+	order.Status = string(cmodels.OrderWaiting)
+	if err := cmodels.Save(app, order); err != nil {
 		return err
 	}
 	return nil
@@ -67,105 +55,26 @@ func onCustomerCreatedEvent(app core.App, ctx echo.Context, event stripe.Event) 
 
 // ===============================================================================
 
-func onCustomerDeletedEvent(app core.App, ctx echo.Context, event stripe.Event) *base.CError {
-	stripeCustomer, err := getStripeCustomerFromObj(event.Data.Object)
+func onCheckoutFail(app core.App, ctx echo.Context, event stripe.Event) *base.CError {
+	checkoutSession, err := getStripeCheckoutSessionFromObj(event.Data.Object)
 	if err != nil {
 		return err
 	}
 
-	var customer *cmodels.Customer
-	if err := app.Dao().ModelQuery(customer).
-		AndWhere(dbx.HashExp{"stripe_customer_id": stripeCustomer.ID}).
+	orderID := checkoutSession.Metadata["order_id"]
+
+	var order *cmodels.Order
+	if err := app.Dao().ModelQuery(order).
+		AndWhere(dbx.HashExp{"id": orderID}).
 		Limit(1).
-		One(&customer); err != nil {
+		One(&order); err != nil {
 		return cmodels.HandleReadError(err, false)
 	}
 
-	if err := cmodels.Delete(app, customer); err != nil {
+	order.PaymentIntent = checkoutSession.PaymentIntent.ID
+	order.Status = string(cmodels.PaymentFailed)
+	if err := cmodels.Save(app, order); err != nil {
 		return err
-	}
-	return nil
-}
-
-// ===============================================================================
-
-func onSubscriptionCreatedEvent(app core.App, ctx echo.Context, event stripe.Event) *base.CError {
-	stripeSubscription, err := getStripeSubscriptionFromObj(event.Data.Object)
-	if err != nil {
-		return err
-	}
-
-	tier, err := getSubscriptionTier(stripeSubscription)
-	if err != nil {
-		return err
-	}
-
-	var customer *cmodels.Customer
-	if err := app.Dao().ModelQuery(customer).
-		AndWhere(dbx.HashExp{"stripe_customer_id": stripeSubscription.Customer.ID}).
-		Limit(1).
-		One(&customer); err != nil {
-		return cmodels.HandleReadError(err, false)
-	}
-
-	customer.StripeSubscriptionID = stripeSubscription.ID
-	customer.Tier = tier
-	if err := cmodels.Save(app, customer); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ===============================================================================
-
-func onSubscriptionUpdatedEvent(app core.App, ctx echo.Context, event stripe.Event) *base.CError {
-	stripeSubscription, err := getStripeSubscriptionFromObj(event.Data.Object)
-	if err != nil {
-		return err
-	}
-
-	tier, err := getSubscriptionTier(stripeSubscription)
-	if err != nil {
-		return err
-	}
-
-	var customer *cmodels.Customer
-	if err := app.Dao().ModelQuery(customer).
-		AndWhere(dbx.HashExp{"stripe_customer_id": stripeSubscription.Customer.ID}).
-		Limit(1).
-		One(&customer); err != nil {
-		return cmodels.HandleReadError(err, false)
-	}
-
-	customer.Tier = tier
-	if err := cmodels.Save(app, customer); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ===============================================================================
-
-func onSubscriptionDeletedEvent(app core.App, ctx echo.Context, event stripe.Event) *base.CError {
-	stripeSubscription, err := getStripeSubscriptionFromObj(event.Data.Object)
-	if err != nil {
-		return err
-	}
-
-	var customer *cmodels.Customer
-	if err := app.Dao().ModelQuery(customer).
-		AndWhere(dbx.HashExp{"stripe_customer_id": stripeSubscription.Customer.ID}).
-		Limit(1).
-		One(&customer); err != nil {
-		return cmodels.HandleReadError(err, false)
-	}
-
-	if stripeSubscription.ID == customer.StripeSubscriptionID {
-		customer.StripeSubscriptionID = ""
-		customer.Tier = 0
-		if err := cmodels.Save(app, customer); err != nil {
-			return err
-		}
 	}
 	return nil
 }

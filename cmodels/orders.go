@@ -16,9 +16,10 @@ var _ models.Model = (*Order)(nil)
 
 type Order struct {
 	models.BaseModel
-	Status  string `db:"status" json:"status"`
-	Images  string `db:"images" json:"images"`
-	Message string `db:"message" json:"message"`
+	PaymentIntent string `db:"payment_intent" json:"payment_intent"`
+	Status        string `db:"status" json:"status"`
+	Images        string `db:"images" json:"images"`
+	Message       string `db:"message" json:"message"`
 }
 
 func (m *Order) TableName() string {
@@ -62,6 +63,12 @@ func createOrdersCollection(app core.App) {
 		UpdateRule: nil,
 		DeleteRule: nil,
 		Schema: schema.NewSchema(
+			&schema.SchemaField{
+				Name:     "payment_intent",
+				Type:     schema.FieldTypeText,
+				Required: true,
+				Options:  &schema.TextOptions{},
+			},
 			&schema.SchemaField{
 				Name:     "status",
 				Type:     schema.FieldTypeText,
