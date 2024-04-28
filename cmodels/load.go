@@ -12,8 +12,7 @@ func LoadModels(app *pocketbase.PocketBase, env *base.Env) {
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		// ===================
 		// collections
-		createCustomersCollection(e.App)
-		createNotifsCollection(e.App)
+		createOrdersCollection(e.App)
 
 		return nil
 	})
