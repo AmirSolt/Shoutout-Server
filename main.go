@@ -15,7 +15,6 @@ import (
 func main() {
 
 	env := base.LoadEnv()
-	base.LoadLogging(env)
 	app := pocketbase.New()
 
 	cmodels.LoadModels(app, env)
