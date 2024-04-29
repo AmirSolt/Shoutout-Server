@@ -65,7 +65,7 @@ func createOrdersCollection(app core.App) {
 			&schema.SchemaField{
 				Name:     "payment_intent",
 				Type:     schema.FieldTypeText,
-				Required: true,
+				Required: false,
 				Options:  &schema.TextOptions{},
 			},
 			&schema.SchemaField{
@@ -78,7 +78,7 @@ func createOrdersCollection(app core.App) {
 				Name:     "images",
 				Type:     schema.FieldTypeFile,
 				Required: true,
-				Options:  &schema.FileOptions{Protected: false},
+				Options:  &schema.FileOptions{Protected: false, MaxSelect: 10, MaxSize: 1_000_000, MimeTypes: []string{".jpg", ".png", ".jpeg"}},
 			},
 			&schema.SchemaField{
 				Name:     "message",
