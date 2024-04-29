@@ -13,13 +13,9 @@ type Env struct {
 	DOMAIN  string `validate:"url"`
 	IS_PROD bool   `validate:"boolean"`
 
-	PRIVATE_GEO_SERVER_API_KEY string `validate:"required"`
-
 	STRIPE_PUBLIC_KEY  string `validate:"required"`
 	STRIPE_PRIVATE_KEY string `validate:"required"`
 	STRIPE_WEBHOOK_KEY string `validate:"required"`
-
-	GLITCHTIP_DSN string `validate:"required"`
 }
 
 func LoadEnv() *Env {
