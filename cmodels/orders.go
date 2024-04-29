@@ -7,7 +7,6 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/models"
 	"github.com/pocketbase/pocketbase/models/schema"
-	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 const orders string = "orders"
@@ -88,9 +87,6 @@ func createOrdersCollection(app core.App) {
 				Options:  &schema.TextOptions{},
 			},
 		),
-		Indexes: types.JsonArray[string]{
-			fmt.Sprintf("CREATE UNIQUE INDEX idx_user ON %s (user)", collectionName),
-		},
 	}
 
 	if err := app.Dao().SaveCollection(collection); err != nil {
