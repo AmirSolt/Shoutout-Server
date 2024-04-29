@@ -29,13 +29,12 @@ func LoadEnv() *Env {
 	}
 
 	env := Env{
-		DOMAIN:                     os.Getenv("DOMAIN"),
-		IS_PROD:                    strToBool(os.Getenv("IS_PROD")),
-		PRIVATE_GEO_SERVER_API_KEY: os.Getenv("PRIVATE_GEO_SERVER_API_KEY"),
-		STRIPE_PUBLIC_KEY:          os.Getenv("STRIPE_PUBLIC_KEY"),
-		STRIPE_PRIVATE_KEY:         os.Getenv("STRIPE_PRIVATE_KEY"),
-		STRIPE_WEBHOOK_KEY:         os.Getenv("STRIPE_WEBHOOK_KEY"),
-		GLITCHTIP_DSN:              os.Getenv("GLITCHTIP_DSN"),
+		DOMAIN:  os.Getenv("DOMAIN"),
+		IS_PROD: strToBool(os.Getenv("IS_PROD")),
+
+		STRIPE_PUBLIC_KEY:  os.Getenv("STRIPE_PUBLIC_KEY"),
+		STRIPE_PRIVATE_KEY: os.Getenv("STRIPE_PRIVATE_KEY"),
+		STRIPE_WEBHOOK_KEY: os.Getenv("STRIPE_WEBHOOK_KEY"),
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
