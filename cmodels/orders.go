@@ -78,7 +78,7 @@ func createOrdersCollection(app core.App) {
 				Name:     "images",
 				Type:     schema.FieldTypeFile,
 				Required: true,
-				Options:  &schema.FileOptions{Protected: false, MaxSelect: 10, MaxSize: 1_000_000, MimeTypes: []string{".jpg", ".png", ".jpeg"}},
+				Options:  &schema.FileOptions{Protected: false, MaxSelect: 10, MaxSize: 1_000_000, MimeTypes: []string{"image/png", "image/jpg", "image/jpeg"}},
 			},
 			&schema.SchemaField{
 				Name:     "message",
