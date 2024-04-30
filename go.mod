@@ -10,6 +10,7 @@ require (
 	github.com/pocketbase/dbx v1.10.1
 	github.com/pocketbase/pocketbase v0.22.2
 	github.com/stripe/stripe-go/v76 v76.21.0
+	go.openly.dev/pointy v1.3.0
 )
 
 require (

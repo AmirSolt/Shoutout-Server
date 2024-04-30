@@ -35,11 +35,9 @@ func onCheckoutSuccess(app core.App, ctx echo.Context, event stripe.Event) *base
 		return err
 	}
 
-	orderID := checkoutSession.Metadata["order_id"]
-
 	var order *cmodels.Order
 	if err := app.Dao().ModelQuery(order).
-		AndWhere(dbx.HashExp{"id": orderID}).
+		AndWhere(dbx.HashExp{"checkout_id": checkoutSession.ID}).
 		Limit(1).
 		One(&order); err != nil {
 		return cmodels.HandleReadError(err, false)

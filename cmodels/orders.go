@@ -7,6 +7,8 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/models"
 	"github.com/pocketbase/pocketbase/models/schema"
+	"github.com/pocketbase/pocketbase/tools/types"
+	"go.openly.dev/pointy"
 )
 
 const orders string = "orders"
@@ -15,10 +17,13 @@ var _ models.Model = (*Order)(nil)
 
 type Order struct {
 	models.BaseModel
+	CheckoutID    string `db:"checkout_id" json:"checkout_id"`
 	PaymentIntent string `db:"payment_intent" json:"payment_intent"`
 	Status        string `db:"status" json:"status"`
 	Images        string `db:"images" json:"images"`
 	Message       string `db:"message" json:"message"`
+	ProductID     string `db:"product_id" json:"product_id"`
+	ProductName   string `db:"product_name" json:"product_name"`
 }
 
 func (m *Order) TableName() string {
@@ -63,6 +68,12 @@ func createOrdersCollection(app core.App) {
 		DeleteRule: nil,
 		Schema: schema.NewSchema(
 			&schema.SchemaField{
+				Name:     "checkout_id",
+				Type:     schema.FieldTypeText,
+				Required: true,
+				Options:  &schema.TextOptions{},
+			},
+			&schema.SchemaField{
 				Name:     "payment_intent",
 				Type:     schema.FieldTypeText,
 				Required: false,
@@ -84,9 +95,24 @@ func createOrdersCollection(app core.App) {
 				Name:     "message",
 				Type:     schema.FieldTypeText,
 				Required: true,
+				Options:  &schema.TextOptions{Min: pointy.Int(1), Max: pointy.Int(200)},
+			},
+			&schema.SchemaField{
+				Name:     "product_id",
+				Type:     schema.FieldTypeText,
+				Required: true,
+				Options:  &schema.TextOptions{},
+			},
+			&schema.SchemaField{
+				Name:     "product_name",
+				Type:     schema.FieldTypeText,
+				Required: true,
 				Options:  &schema.TextOptions{},
 			},
 		),
+		Indexes: types.JsonArray[string]{
+			"CREATE UNIQUE INDEX idx_checkout_id ON orders (checkout_id)",
+		},
 	}
 
 	if err := app.Dao().SaveCollection(collection); err != nil {
