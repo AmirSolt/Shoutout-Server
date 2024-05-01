@@ -21,12 +21,11 @@ func handleStripeWebhook(app core.App, ctx echo.Context, env *base.Env) error {
 	req.Body = http.MaxBytesReader(res.Writer, req.Body, MaxBodyBytes)
 	payload, err := io.ReadAll(req.Body)
 	if err != nil {
-		return ctx.String(http.StatusServiceUnavailable, fmt.Errorf("problem with request.").Error())
+		return ctx.String(http.StatusServiceUnavailable, fmt.Errorf("problem with request. Error: %w", err).Error())
 	}
-	endpointSecret := env.STRIPE_WEBHOOK_KEY
-	event, err := webhook.ConstructEvent(payload, req.Header.Get("Stripe-Signature"), endpointSecret)
+	event, err := webhook.ConstructEvent(payload, req.Header.Get("Stripe-Signature"), env.STRIPE_WEBHOOK_KEY)
 	if err != nil {
-		return ctx.String(http.StatusBadRequest, fmt.Errorf("error verifying webhook signature.").Error())
+		return ctx.String(http.StatusBadRequest, fmt.Errorf("error verifying webhook signature. Error: %w", err).Error())
 	}
 	// ==================================================================
 

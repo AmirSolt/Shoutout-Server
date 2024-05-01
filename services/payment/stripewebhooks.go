@@ -16,7 +16,7 @@ func onStripeEvents(app core.App, ctx echo.Context, event stripe.Event) error {
 		return onCheckoutSuccess(app, ctx, event)
 	}
 
-	err := fmt.Errorf("unhandled stripe event type: %s\n", event.Type)
+	err := fmt.Errorf("unhandled stripe event type: %s", event.Type)
 	return err
 }
 
