@@ -1,31 +1,28 @@
 package payment
 
 import (
-	"basedpocket/base"
 	"basedpocket/cmodels"
 	"encoding/json"
 	"fmt"
 	"strconv"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/stripe/stripe-go/v76"
 )
 
-func onStripeEvents(app core.App, ctx echo.Context, event stripe.Event) *base.CError {
+func onStripeEvents(app core.App, ctx echo.Context, event stripe.Event) error {
 	if event.Type == "checkout.session.completed" {
 		return onCheckoutSuccess(app, ctx, event)
 	}
 
 	err := fmt.Errorf("unhandled stripe event type: %s\n", event.Type)
-	eventID := sentry.CaptureException(err)
-	return &base.CError{Message: "Internal Server Error", EventID: *eventID, Error: err}
+	return err
 }
 
 // ===============================================================================
 
-func onCheckoutSuccess(app core.App, ctx echo.Context, event stripe.Event) *base.CError {
+func onCheckoutSuccess(app core.App, ctx echo.Context, event stripe.Event) error {
 	checkoutSession, err := getStripeCheckoutSessionFromObj(event.Data.Object)
 	if err != nil {
 		return err
@@ -48,60 +45,58 @@ func onCheckoutSuccess(app core.App, ctx echo.Context, event stripe.Event) *base
 // ===============================================================================
 // ===============================================================================
 
-func getStripeCustomerFromObj(object map[string]interface{}) (*stripe.Customer, *base.CError) {
+func getStripeCustomerFromObj(object map[string]interface{}) (*stripe.Customer, error) {
 	jsonCustomer, err := json.Marshal(object)
 	if err != nil {
-		eventID := sentry.CaptureException(err)
-		return nil, &base.CError{Message: "Internal Server Error", EventID: *eventID, Error: err}
+		return nil, err
 	}
 	var stripeCustomer *stripe.Customer
 	err = json.Unmarshal(jsonCustomer, &stripeCustomer)
 	if stripeCustomer == nil || err != nil {
-		eventID := sentry.CaptureException(err)
-		return nil, &base.CError{Message: "Internal Server Error", EventID: *eventID, Error: err}
+		return nil, err
 	}
 	return stripeCustomer, nil
 }
 
-func getStripeCheckoutSessionFromObj(object map[string]interface{}) (*stripe.CheckoutSession, *base.CError) {
+func getStripeCheckoutSessionFromObj(object map[string]interface{}) (*stripe.CheckoutSession, error) {
 	jsonCustomer, err := json.Marshal(object)
 	if err != nil {
-		eventID := sentry.CaptureException(err)
-		return nil, &base.CError{Message: "Internal Server Error", EventID: *eventID, Error: err}
+
+		return nil, err
 	}
 	var stripeStruct *stripe.CheckoutSession
 	err = json.Unmarshal(jsonCustomer, &stripeStruct)
 	if stripeStruct == nil || err != nil {
-		eventID := sentry.CaptureException(err)
-		return nil, &base.CError{Message: "Internal Server Error", EventID: *eventID, Error: err}
+
+		return nil, err
 	}
 	return stripeStruct, nil
 }
 
-func getStripeSubscriptionFromObj(object map[string]interface{}) (*stripe.Subscription, *base.CError) {
+func getStripeSubscriptionFromObj(object map[string]interface{}) (*stripe.Subscription, error) {
 	jsonCustomer, err := json.Marshal(object)
 	if err != nil {
-		eventID := sentry.CaptureException(err)
-		return nil, &base.CError{Message: "Internal Server Error", EventID: *eventID, Error: err}
+
+		return nil, err
 	}
 	var stripeStruct *stripe.Subscription
 	err = json.Unmarshal(jsonCustomer, &stripeStruct)
 	if stripeStruct == nil || err != nil {
-		eventID := sentry.CaptureException(err)
-		return nil, &base.CError{Message: "Internal Server Error", EventID: *eventID, Error: err}
+
+		return nil, err
 	}
 	return stripeStruct, nil
 }
 
-func getSubscriptionTier(subsc *stripe.Subscription) (int, *base.CError) {
+func getSubscriptionTier(subsc *stripe.Subscription) (int, error) {
 	if subsc == nil {
 		return 0, nil
 	}
 	subscTierStr := subsc.Items.Data[0].Price.Metadata["tier"]
 	subscTierInt, err := strconv.Atoi(subscTierStr)
 	if err != nil {
-		eventID := sentry.CaptureException(err)
-		return 0, &base.CError{Message: "Internal Server Error", EventID: *eventID, Error: err}
+
+		return 0, err
 	}
 	return subscTierInt, nil
 }

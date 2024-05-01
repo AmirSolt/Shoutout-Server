@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/stripe/stripe-go/v76/webhook"
@@ -22,19 +21,17 @@ func handleStripeWebhook(app core.App, ctx echo.Context, env *base.Env) error {
 	req.Body = http.MaxBytesReader(res.Writer, req.Body, MaxBodyBytes)
 	payload, err := io.ReadAll(req.Body)
 	if err != nil {
-		eventID := sentry.CaptureException(err)
-		return ctx.String(http.StatusServiceUnavailable, fmt.Errorf("problem with request. eventID: %s", *eventID).Error())
+		return ctx.String(http.StatusServiceUnavailable, fmt.Errorf("problem with request.").Error())
 	}
 	endpointSecret := env.STRIPE_WEBHOOK_KEY
 	event, err := webhook.ConstructEvent(payload, req.Header.Get("Stripe-Signature"), endpointSecret)
 	if err != nil {
-		eventID := sentry.CaptureException(err)
-		return ctx.String(http.StatusBadRequest, fmt.Errorf("error verifying webhook signature. eventID: %s", *eventID).Error())
+		return ctx.String(http.StatusBadRequest, fmt.Errorf("error verifying webhook signature.").Error())
 	}
 	// ==================================================================
 
 	if err := onStripeEvents(app, ctx, event); err != nil {
-		return ctx.String(http.StatusInternalServerError, err.Error.Error())
+		return ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
 	res.Writer.WriteHeader(http.StatusOK)
