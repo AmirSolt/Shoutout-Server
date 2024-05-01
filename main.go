@@ -3,6 +3,7 @@ package main
 import (
 	"basedpocket/base"
 	"basedpocket/cmodels"
+	"basedpocket/services/pages"
 	"basedpocket/services/payment"
 	"log"
 
@@ -19,6 +20,7 @@ func main() {
 
 	cmodels.LoadModels(app, env)
 	payment.LoadPayment(app, env)
+	pages.LoadPages(app, env)
 
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
