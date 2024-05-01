@@ -57,7 +57,10 @@ func GetMostRecentTransactions(transactions []cmodels.Transaction, limit int) *[
 	sort.Slice(transactions, func(i, j int) bool {
 		return transactions[i].Created.Time().After(transactions[j].Created.Time())
 	})
-	slicedTransactions := transactions[:limit]
+	slicedTransactions := transactions
+	if len(transactions) > limit {
+		slicedTransactions = transactions[:limit]
+	}
 	return &slicedTransactions
 }
 
@@ -65,6 +68,9 @@ func GetHighestTransactions(transactions []cmodels.Transaction, limit int) *[]cm
 	sort.Slice(transactions, func(i, j int) bool {
 		return transactions[i].Amount > transactions[j].Amount
 	})
-	slicedTransactions := transactions[:limit]
+	slicedTransactions := transactions
+	if len(transactions) > limit {
+		slicedTransactions = transactions[:limit]
+	}
 	return &slicedTransactions
 }
