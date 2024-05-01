@@ -14,7 +14,7 @@ import (
 
 type LandingPageResponse struct {
 	TotalRaised         float64                `json:"total_raised"`
-	HighestTransactions *[]cmodels.Transaction `json:"top_donors"`
+	HighestTransactions *[]cmodels.Transaction `json:"highest_transactions"`
 	RecentTransactions  *[]cmodels.Transaction `json:"recent_transactions"`
 }
 
