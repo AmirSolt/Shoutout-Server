@@ -18,6 +18,7 @@ type Transaction struct {
 	Amount        float64 `db:"amount" json:"amount"`
 	PaymentIntent string  `db:"payment_intent" json:"payment_intent"`
 	UserName      string  `db:"user_name" json:"user_name"`
+	UserEmail     string  `db:"user_email" json:"user_email"`
 	CharacterName string  `db:"character_name" json:"character_name"`
 }
 
@@ -62,6 +63,12 @@ func createTransactionsCollection(app core.App) {
 				Type:     schema.FieldTypeText,
 				Required: true,
 				Options:  &schema.TextOptions{Min: pointy.Int(3), Max: pointy.Int(24)},
+			},
+			&schema.SchemaField{
+				Name:     "user_email",
+				Type:     schema.FieldTypeText,
+				Required: true,
+				Options:  &schema.TextOptions{},
 			},
 			&schema.SchemaField{
 				Name:     "character_name",

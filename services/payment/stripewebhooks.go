@@ -32,6 +32,7 @@ func onCheckoutSuccess(app core.App, ctx echo.Context, event stripe.Event) error
 		Amount:        float64(checkoutSession.AmountTotal) / float64(100),
 		PaymentIntent: checkoutSession.PaymentIntent.ID,
 		UserName:      checkoutSession.Metadata["user_name"],
+		UserEmail:     checkoutSession.Customer.Email,
 		CharacterName: checkoutSession.Metadata["character_name"],
 	}
 
