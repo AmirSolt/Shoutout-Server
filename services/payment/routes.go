@@ -8,7 +8,7 @@ import (
 
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/stripe/stripe-go/v76/webhook"
+	"github.com/stripe/stripe-go/v78/webhook"
 )
 
 func handleStripeWebhook(app core.App, ctx echo.Context, env *base.Env) error {
