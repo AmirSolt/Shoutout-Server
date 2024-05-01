@@ -9,17 +9,13 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v5"
-	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/stripe/stripe-go/v76"
 )
 
 func onStripeEvents(app core.App, ctx echo.Context, event stripe.Event) *base.CError {
-	if event.Type == "checkout.session.async_payment_succeeded" {
+	if event.Type == "checkout.session.completed" {
 		return onCheckoutSuccess(app, ctx, event)
-	}
-	if event.Type == "checkout.session.async_payment_failed" {
-		return onCheckoutFail(app, ctx, event)
 	}
 
 	err := fmt.Errorf("unhandled stripe event type: %s\n", event.Type)
@@ -35,43 +31,14 @@ func onCheckoutSuccess(app core.App, ctx echo.Context, event stripe.Event) *base
 		return err
 	}
 
-	var order *cmodels.Order
-	if err := app.Dao().ModelQuery(order).
-		AndWhere(dbx.HashExp{"checkout_id": checkoutSession.ID}).
-		Limit(1).
-		One(&order); err != nil {
-		return cmodels.HandleReadError(err, false)
+	trans := &cmodels.Transaction{
+		Amount:        float64(checkoutSession.AmountTotal) / float64(100),
+		PaymentIntent: checkoutSession.PaymentIntent.ID,
+		UserName:      checkoutSession.Metadata["user_name"],
+		CharacterName: checkoutSession.Metadata["character_name"],
 	}
 
-	order.PaymentIntent = checkoutSession.PaymentIntent.ID
-	order.Status = string(cmodels.OrderWaiting)
-	if err := cmodels.Save(app, order); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ===============================================================================
-
-func onCheckoutFail(app core.App, ctx echo.Context, event stripe.Event) *base.CError {
-	checkoutSession, err := getStripeCheckoutSessionFromObj(event.Data.Object)
-	if err != nil {
-		return err
-	}
-
-	orderID := checkoutSession.Metadata["order_id"]
-
-	var order *cmodels.Order
-	if err := app.Dao().ModelQuery(order).
-		AndWhere(dbx.HashExp{"id": orderID}).
-		Limit(1).
-		One(&order); err != nil {
-		return cmodels.HandleReadError(err, false)
-	}
-
-	order.PaymentIntent = checkoutSession.PaymentIntent.ID
-	order.Status = string(cmodels.PaymentFailed)
-	if err := cmodels.Save(app, order); err != nil {
+	if err := cmodels.Save(app, trans); err != nil {
 		return err
 	}
 	return nil
