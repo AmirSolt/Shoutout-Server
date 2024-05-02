@@ -10,12 +10,19 @@ import (
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 type LandingPageResponse struct {
-	TotalRaised         float64                `json:"total_raised"`
-	HighestTransactions *[]cmodels.Transaction `json:"highest_transactions"`
-	RecentTransactions  *[]cmodels.Transaction `json:"recent_transactions"`
+	TotalRaised         float64           `json:"total_raised"`
+	HighestTransactions *[]TransactionAPI `json:"highest_transactions"`
+	RecentTransactions  *[]TransactionAPI `json:"recent_transactions"`
+}
+
+type TransactionAPI struct {
+	Created  types.DateTime `db:"created" json:"created"`
+	Amount   float64        `db:"amount" json:"amount"`
+	UserName string         `db:"user_name" json:"user_name"`
 }
 
 const ResponseTransLimit = 5
@@ -36,16 +43,18 @@ func handleLandingPageData(app core.App, ctx echo.Context, env *base.Env) error 
 		return cmodels.HandleReadError(err, false)
 	}
 
+	transactionsAPI := convertTransactionsForAPI(*transactions)
+
 	landingPageResponse := LandingPageResponse{
-		TotalRaised:         SumTransactionAmounts(*transactions),
-		HighestTransactions: GetMostRecentTransactions(*transactions, ResponseTransLimit),
-		RecentTransactions:  GetHighestTransactions(*transactions, ResponseTransLimit),
+		TotalRaised:         SumTransactionAmounts(transactionsAPI),
+		HighestTransactions: GetMostRecentTransactions(transactionsAPI, ResponseTransLimit),
+		RecentTransactions:  GetHighestTransactions(transactionsAPI, ResponseTransLimit),
 	}
 
 	return ctx.JSON(http.StatusOK, landingPageResponse)
 }
 
-func SumTransactionAmounts(transactions []cmodels.Transaction) float64 {
+func SumTransactionAmounts(transactions []TransactionAPI) float64 {
 	total := 0.0
 	for _, transaction := range transactions {
 		total += transaction.Amount
@@ -53,7 +62,7 @@ func SumTransactionAmounts(transactions []cmodels.Transaction) float64 {
 	return total
 }
 
-func GetMostRecentTransactions(transactions []cmodels.Transaction, limit int) *[]cmodels.Transaction {
+func GetMostRecentTransactions(transactions []TransactionAPI, limit int) *[]TransactionAPI {
 	sort.Slice(transactions, func(i, j int) bool {
 		return transactions[i].Created.Time().After(transactions[j].Created.Time())
 	})
@@ -64,7 +73,7 @@ func GetMostRecentTransactions(transactions []cmodels.Transaction, limit int) *[
 	return &slicedTransactions
 }
 
-func GetHighestTransactions(transactions []cmodels.Transaction, limit int) *[]cmodels.Transaction {
+func GetHighestTransactions(transactions []TransactionAPI, limit int) *[]TransactionAPI {
 	sort.Slice(transactions, func(i, j int) bool {
 		return transactions[i].Amount > transactions[j].Amount
 	})
@@ -73,4 +82,18 @@ func GetHighestTransactions(transactions []cmodels.Transaction, limit int) *[]cm
 		slicedTransactions = transactions[:limit]
 	}
 	return &slicedTransactions
+}
+
+func convertTransactionsForAPI(transactions []cmodels.Transaction) []TransactionAPI {
+	transAPI := []TransactionAPI{}
+
+	for _, trans := range transactions {
+		transAPI = append(transAPI, TransactionAPI{
+			Created:  trans.Created,
+			Amount:   trans.Amount,
+			UserName: trans.UserName,
+		})
+	}
+
+	return transAPI
 }
